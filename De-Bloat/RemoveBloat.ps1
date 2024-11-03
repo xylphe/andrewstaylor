@@ -173,6 +173,7 @@ Start-Transcript -Path "C:\ProgramData\Debloat\Debloat.log"
 #Removes AppxPackages
 $WhitelistedApps = @(
     'Microsoft.WindowsNotepad',
+    'Microsoft.Clipchamp',
     'Microsoft.CompanyPortal',
     'Microsoft.ScreenSketch',
     'Microsoft.WindowsCalculator',
@@ -296,6 +297,7 @@ $Bloatware = @(
 "*AdobeSystemsIncorporated.AdobePhotoshopExpress*"
 "*BubbleWitch3Saga*"
 "*CandyCrush*"
+"*Courier*"
 "*DevHome*"
 "*Disney*"
 "*Dolby*"
