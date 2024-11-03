@@ -357,7 +357,7 @@ $Bloatware = @(
 "Microsoft.WindowsFeedbackHub"
 "Microsoft.WindowsMaps"
 "Microsoft.WindowsSoundRecorder"
--"Microsoft.Xbox.TCUI"
+"Microsoft.Xbox.TCUI"
 "Microsoft.XboxApp"
 "Microsoft.XboxGameOverlay"
 "Microsoft.XboxGamingOverlay"
