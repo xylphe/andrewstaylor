@@ -175,17 +175,14 @@ $WhitelistedApps = @(
     'Microsoft.WindowsNotepad',
     'Microsoft.CompanyPortal',
     'Microsoft.ScreenSketch',
-    'Microsoft.Paint3D',
     'Microsoft.WindowsCalculator',
     'Microsoft.WindowsStore',
     'Microsoft.Windows.Photos',
-    'CanonicalGroupLimited.UbuntuonWindows',
     'Microsoft.MicrosoftStickyNotes',
     'Microsoft.MSPaint',
     'Microsoft.WindowsCamera',
     '.NET Framework',
     'Microsoft.HEIFImageExtension',
-    'Microsoft.ScreenSketch',
     'Microsoft.StorePurchaseApp',
     'Microsoft.VP9VideoExtensions',
     'Microsoft.WebMediaExtensions',
@@ -334,7 +331,6 @@ $Bloatware = @(
 "Microsoft.HEVCVideoExtension"
 "Microsoft.Messaging"
 "Microsoft.Microsoft3DViewer"
-"Microsoft.MicrosoftEdge.Stable"
 "Microsoft.MicrosoftJournal"
 "Microsoft.MicrosoftOfficeHub"
 "Microsoft.MicrosoftSolitaireCollection"
@@ -345,7 +341,6 @@ $Bloatware = @(
 "Microsoft.Office.OneNote"
 "Microsoft.Office.Sway"
 "Microsoft.OneConnect"
-"Microsoft.OneDriveSync"
 "Microsoft.People"
 "Microsoft.PowerAutomateDesktop"
 "Microsoft.PowerAutomateDesktopCopilotPlugin"
@@ -354,8 +349,6 @@ $Bloatware = @(
 "Microsoft.SkypeApp"
 "Microsoft.StorePurchaseApp"
 "Microsoft.SysinternalsSuite"
-"Microsoft.Teams"
-"Microsoft.Todos"
 "Microsoft.Whiteboard"
 "Microsoft.Windows.DevHome"
 "Microsoft.WindowsAlarms"
@@ -364,8 +357,7 @@ $Bloatware = @(
 "Microsoft.WindowsFeedbackHub"
 "Microsoft.WindowsMaps"
 "Microsoft.WindowsSoundRecorder"
-"Microsoft.WindowsStore"
-"Microsoft.Xbox.TCUI"
+-"Microsoft.Xbox.TCUI"
 "Microsoft.XboxApp"
 "Microsoft.XboxGameOverlay"
 "Microsoft.XboxGamingOverlay"
@@ -380,13 +372,12 @@ $Bloatware = @(
 "MicrosoftWindows.Client.WebExperience"
 "MicrosoftWindows.CrossDevice"
 "MirametrixInc.GlancebyMirametrix"
-"MSTeams"
 "RealtimeboardInc.RealtimeBoard"
 "SpotifyAB.SpotifyMusic"
 #Optional: Typically not removed but you can if you need to for some reason
 #"*Microsoft.Advertising.Xaml_10.1712.5.0_x64__8wekyb3d8bbwe*"
 #"*Microsoft.Advertising.Xaml_10.1712.5.0_x86__8wekyb3d8bbwe*"
-#"*Microsoft.BingWeather*"
+"*Microsoft.BingWeather*"
 #"*Microsoft.MSPaint*"
 #"*Microsoft.MicrosoftStickyNotes*"
 #"*Microsoft.Windows.Photos*"
@@ -396,9 +387,9 @@ $Bloatware = @(
 #"Microsoft.Whiteboard"
 #"Microsoft.WindowsCamera"
 #"Microsoft.WindowsSoundRecorder"
-#"Microsoft.YourPhone"
+"Microsoft.YourPhone"
 #"Microsoft.Todos"
-#"Microsoft.PowerAutomateDesktop"
+"Microsoft.PowerAutomateDesktop"
 )
 
 
