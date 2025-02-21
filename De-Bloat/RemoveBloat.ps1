@@ -17,7 +17,7 @@
 .OUTPUTS
 C:\ProgramData\Debloat\Debloat.log
 .NOTES
-  Version:        5.0.29
+  Version:        5.1.6
   Author:         Andrew Taylor
   Twitter:        @AndrewTaylor_2
   WWW:            andrewstaylor.com
@@ -121,6 +121,16 @@ C:\ProgramData\Debloat\Debloat.log
   Change 24/09/2024 - Fixed uninstall for HP Wolf Security
   Change 25/09/2024 - Removed locales as Teams is now combined
   Change 08/10/2024 - ODT Fix
+  Change 04/11/2024 - Block games in search bar
+  Change 03/12/2024 - Fix for HP AppxPackage Removal
+  Change 10/12/2024 - Added registry keys to not display screens during OOBE when using Device prep (thanks Rudy)
+  Change 07/01/2025 - Added spotlight removal keys
+  Change 10/01/2025 - Added Lenovo Now
+  Change 21/01/2025 - Edge Surf game fix
+  Change 27/01/2025 - Added Logitech Download assistant
+  Change 27/01/2025 - Converted from CRLF to LF
+  Change 06/02/2025 - Added the t back to transcrip(t)
+  Change 10/02/2025 - Fixed logic for Logitech Registry key
 N/A
 #>
 
@@ -537,6 +547,14 @@ foreach ($sid in $UserSIDs) {
     Set-ItemProperty $Period PeriodInNanoSeconds -Value 0
 }
 
+##Disables games from showing in Search bar
+write-output "Adding Registry key to stop games from search bar"
+$registryPath = "HKLM:\	SOFTWARE\Policies\Microsoft\Windows\Windows Search"
+If (!(Test-Path $registryPath)) {
+    New-Item $registryPath
+}
+Set-ItemProperty $registryPath EnableDynamicContentInWSB -Value 0
+
 #Prevents bloatware applications from returning and removes Start Menu suggestions
 write-output "Adding Registry key to prevent bloatware apps from returning"
 $registryPath = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\CloudContent"
@@ -730,6 +748,31 @@ else {
 
 ##Kill Cortana again
 Get-AppxPackage Microsoft.549981C3F5F10 -allusers | Remove-AppxPackage
+
+
+
+############################################################################################################
+#                                   Disable unwanted OOBE screens for Device Prep                          #
+#                                                                                                          #
+############################################################################################################
+
+$registryPath = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\OOBE"
+$registryPath2 = "HKLM:\Software\Microsoft\Windows\CurrentVersion\Policies\System"
+$Name1 = "DisablePrivacyExperience"
+$Name2 = "DisableVoice"
+$Name3 = "PrivacyConsentStatus"
+$Name4 = "Protectyourpc"
+$Name5 = "HideEULAPage"
+$Name6 = "EnableFirstLogonAnimation"
+New-ItemProperty -Path $registryPath -Name $name1 -Value 1 -PropertyType DWord -Force
+New-ItemProperty -Path $registryPath -Name $name2 -Value 1 -PropertyType DWord -Force
+New-ItemProperty -Path $registryPath -Name $name3 -Value 1 -PropertyType DWord -Force
+New-ItemProperty -Path $registryPath -Name $name4 -Value 3 -PropertyType DWord -Force
+New-ItemProperty -Path $registryPath -Name $name5 -Value 1 -PropertyType DWord -Force
+New-ItemProperty -Path $registryPath2 -Name $name6 -Value 1 -PropertyType DWord -Force
+
+
+
 ############################################################################################################
 #                                        Remove Learn about this picture                                   #
 #                                                                                                          #
@@ -763,6 +806,43 @@ If (Test-Path $consumer) {
     Set-ItemProperty $consumer -Name "DisableWindowsConsumerFeatures" -Value 1
 }
 
+
+############################################################################################################
+#                                                   Disable Spotlight                                      #
+#                                                                                                          #
+############################################################################################################
+
+write-output "Disabling Windows Spotlight on lockscreen"
+$spotlight = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
+If (Test-Path $spotlight) {
+    Set-ItemProperty $spotlight -Name "RotatingLockScreenOverlayEnabled" -Value 0
+    Set-ItemProperty $spotlight -Name "RotatingLockScreenEnabled" -Value 0
+}
+
+##Loop through users and do the same
+foreach ($sid in $UserSIDs) {
+    $spotlight = "Registry::HKU\$sid\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager"
+    If (Test-Path $spotlight) {
+        Set-ItemProperty $spotlight -Name "RotatingLockScreenOverlayEnabled" -Value 0
+        Set-ItemProperty $spotlight -Name "RotatingLockScreenEnabled" -Value 0
+    }
+}
+
+write-output "Disabling Windows Spotlight on background"
+$spotlight = 'HKCU:\Software\Policies\Microsoft\Windows\CloudContent'
+If (Test-Path $spotlight) {
+    Set-ItemProperty $spotlight -Name "DisableSpotlightCollectionOnDesktop" -Value 1
+    Set-ItemProperty $spotlight -Name "DisableWindowsSpotlightFeatures" -Value 1
+}
+
+##Loop through users and do the same
+foreach ($sid in $UserSIDs) {
+    $spotlight = "Registry::HKU\$sid\Software\Policies\Microsoft\Windows\CloudContent"
+    If (Test-Path $spotlight) {
+        Set-ItemProperty $spotlight -Name "DisableSpotlightCollectionOnDesktop" -Value 1
+        Set-ItemProperty $spotlight -Name "DisableWindowsSpotlightFeatures" -Value 1
+    }
+}
 
 ############################################################################################################
 #                                        Remove Scheduled Tasks                                            #
@@ -1094,11 +1174,32 @@ Remove-Item C:\Windows\Temp\SetACL.exe -recurse
 #                                        Disable Edge Surf Game                                            #
 #                                                                                                          #
 ############################################################################################################
-$surf = "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge"
+$surf = "HKLM:\SOFTWARE\Policies\Microsoft\Edge"
 If (!(Test-Path $surf)) {
     New-Item $surf
 }
 New-ItemProperty -Path $surf -Name 'AllowSurfGame' -Value 0 -PropertyType DWord
+
+
+############################################################################################################
+#                                       Remove Logitech Download Assistant                                 #
+#                                                                                                          #
+############################################################################################################
+$logi = "SOFTWARE\Microsoft\Windows\CurrentVersion\Run"
+If ((Get-ItemProperty $logi).PSObject.Properties.Name -contains 'Logitech Download Assistant') {
+    # Delete the key
+    Remove-ItemProperty -Path $logi -Name 'Logitech Download Assistant'
+    Write-Output 'Logitech Download Assistant Registry key removed.'
+}
+
+##Remove the dll
+$logidll = "C:\Windows\System32\LogiLDA.dll"
+if (Test-Path $logidll) {
+    Remove-Item $logidll -Force
+    Write-Output "Logitech Download Assistant DLL removed."
+} else {
+    Write-Output "Logitech Download Assistant DLL not found."
+}
 
 ############################################################################################################
 #                                       Grab all Uninstall Strings                                         #
@@ -1316,6 +1417,9 @@ if ($manufacturer -like "*HP*") {
         "HP Wolf Security - Console"
         "HP Wolf Security Application Support for Chrome 122.0.6261.139"
         "Windows Driver Package - HP Inc. sselam_4_4_2_453 AntiVirus  (11/01/2022 4.4.2.453)"
+        "HP Insights"
+        "HP Insights Analytics"
+        "HP Insights Analytics - Dependencies"
     )
 
 
@@ -1339,7 +1443,7 @@ if ($manufacturer -like "*HP*") {
             write-output "Provisioned package for $app not found."
         }
 
-        if (Get-AppxPackage -Name $app -ErrorAction SilentlyContinue) {
+        if (Get-AppxPackage -allusers -Name $app -ErrorAction SilentlyContinue) {
             Get-AppxPackage -allusers -Name $app | Remove-AppxPackage -AllUsers
             write-output "Removed $app."
         }
@@ -1388,7 +1492,7 @@ if (test-path -Path 'C:\Program Files\HP\Z By HP Data Science Stack Manager\Unin
     if (Test-Path -Path "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\TCO Certified.lnk" -PathType Leaf) { Remove-Item -Path "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\TCO Certified.lnk" -Force }
     if (Test-Path -Path "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Booking.com.lnk" -PathType Leaf) { Remove-Item -Path "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Booking.com.lnk" -Force }
     if (Test-Path -Path "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Adobe offers.lnk" -PathType Leaf) { Remove-Item -Path "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Adobe offers.lnk" -Force }
-
+    if (Test-Path -Path "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Miro Offer.lnk" -PathType Leaf) { Remove-Item -Path "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Miro offer.lnk" -Force }
 
     ##Remove Wolf Security
     wmic product where "name='HP Wolf Security'" call uninstall
@@ -1459,7 +1563,7 @@ if ($manufacturer -like "*Dell*") {
             write-output "Provisioned package for $app not found."
         }
 
-        if (Get-AppxPackage -Name $app -ErrorAction SilentlyContinue) {
+        if (Get-AppxPackage -allusers -Name $app -ErrorAction SilentlyContinue) {
             Get-AppxPackage -allusers -Name $app | Remove-AppxPackage -AllUsers
             write-output "Removed $app."
         }
@@ -1565,7 +1669,6 @@ if ($manufacturer -like "*Dell*") {
 if ($manufacturer -like "Lenovo") {
     write-output "Lenovo detected"
 
-    #Remove HP bloat
 
     ##Lenovo Specific
     # Function to uninstall applications with .exe uninstall strings
@@ -1649,7 +1752,7 @@ if ($manufacturer -like "Lenovo") {
             write-output "Provisioned package for $app not found."
         }
 
-        if (Get-AppxPackage -Name $app -ErrorAction SilentlyContinue) {
+        if (Get-AppxPackage -allusers -Name $app -ErrorAction SilentlyContinue) {
             Get-AppxPackage -allusers -Name $app | Remove-AppxPackage -AllUsers
             write-output "Removed $app."
         }
@@ -1708,6 +1811,15 @@ if ($manufacturer -like "Lenovo") {
     if (test-path -Path $path) {
         Start-Process -FilePath $path -ArgumentList $params -Wait
     }
+
+
+        # Uninstall Lenovo Now
+        $path = 'C:\Program Files (x86)\Lenovo\LenovoNow\unins000.exe'
+        $params = "/SILENT"
+        if (test-path -Path $path) {
+            Start-Process -FilePath $path -ArgumentList $params -Wait
+        }
+
     # Uninstall Lenovo Vantage
     $pathname = (Get-ChildItem -Path "C:\Program Files (x86)\Lenovo\VantageService").name
     $path = "C:\Program Files (x86)\Lenovo\VantageService\$pathname\Uninstall.exe"
@@ -2054,13 +2166,12 @@ else {
 
 write-output "Completed"
 
-Stop-Transcript
-
+Stop-Transcri
 # SIG # Begin signature block
 # MIIoEwYJKoZIhvcNAQcCoIIoBDCCKAACAQExDzANBglghkgBZQMEAgEFADB5Bgor
 # BgEEAYI3AgEEoGswaTA0BgorBgEEAYI3AgEeMCYCAwEAAAQQH8w7YFlLCE63JNLG
-# KX7zUQIBAAIBAAIBAAIBAAIBADAxMA0GCWCGSAFlAwQCAQUABCCS/D2iQrAppDf+
-# f3vdBJogPHvBIBhJCu2bWW5uubZA36CCIRYwggWNMIIEdaADAgECAhAOmxiO+dAt
+# KX7zUQIBAAIBAAIBAAIBAAIBADAxMA0GCWCGSAFlAwQCAQUABCC6NIICxk4KVPxD
+# BtZyHEoCwumJ625Aq07K5xLNz5OmdKCCIRYwggWNMIIEdaADAgECAhAOmxiO+dAt
 # 5+/bUOIIQBhaMA0GCSqGSIb3DQEBDAUAMGUxCzAJBgNVBAYTAlVTMRUwEwYDVQQK
 # EwxEaWdpQ2VydCBJbmMxGTAXBgNVBAsTEHd3dy5kaWdpY2VydC5jb20xJDAiBgNV
 # BAMTG0RpZ2lDZXJ0IEFzc3VyZWQgSUQgUm9vdCBDQTAeFw0yMjA4MDEwMDAwMDBa
@@ -2242,33 +2353,33 @@ Stop-Transcript
 # IFJTQTQwOTYgU0hBMzg0IDIwMjEgQ0ExAhAIsZ/Ns9rzsDFVWAgBLwDpMA0GCWCG
 # SAFlAwQCAQUAoIGEMBgGCisGAQQBgjcCAQwxCjAIoAKAAKECgAAwGQYJKoZIhvcN
 # AQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGCNwIBCzEOMAwGCisGAQQBgjcCARUw
-# LwYJKoZIhvcNAQkEMSIEIAr59fHfA7sFzYiQPwp2O8COJcWP4yXLCzjIkF31m8yH
-# MA0GCSqGSIb3DQEBAQUABIICAGqT4U0qa95SoCtHtMoAThdExi3T9nZChYoFSyIz
-# Hh3hpjl8a5WJUSLxm4s/AOuK4m6VheAq0bQIqlTwO1PsLrtGjzRFy9vUTKVTtvTU
-# 6AgIk47L6AR/xywcgc8ELntOFbvkDnHXa6IHqogyPN0NdQxw43EHYKgDAePJ8/zi
-# rLRBN9Ns5cki1k2maFn0uS9NEL9IaotrTSXQIkVZL1UKWN+qp1PQz4buQB6eX+z7
-# OP536pm5GYZ2w/A5ak2qiwFsE4ViSigQQV8MCBIlVlUw9Oj+BV5/ZXU8/r2maC5h
-# 3y0xHfb6uRya5E8/y5wPmVI9oMEGQqrcQiBM/oEZYX/9W5Lovef+CuX+MqZuJ9V0
-# 4s8zjwfBE+qvKuEi4LZ9w5G+U13poJnbisL+t9s8rABzScuGy0lW68l+C7GropZS
-# gAmGnPmdEjUwW/tzBgx7NNJ4bR2USFcVl318OxJDMg0Qwdroqqnly+jftmMzraEo
-# javF7gBdm7Wo7zxKkIW3nzYIbmpnEJiMWnS/HKD/4VwUKOcBMFozs3Orfk9qDMX5
-# 6hhI+F7+wu/arcZsuCMhpPhZyiHp8BOFMfh1Ch/Z++CCYr0K8vzsdA0sg1w+nl7/
-# hZ7Z2Ok1xOIPI1ylyTZMZCFgd4kg4dcqvP7D1O6ekDLAtsbHtltHIeGNU0hu1yqq
-# tzQBoYIDIDCCAxwGCSqGSIb3DQEJBjGCAw0wggMJAgEBMHcwYzELMAkGA1UEBhMC
+# LwYJKoZIhvcNAQkEMSIEID23MYAsz8X9fc6+SaVO7VBf6gVAe//p2DW6yPvcevVc
+# MA0GCSqGSIb3DQEBAQUABIICAEP9yyDXmRVvYCKVGwKBww9+fHbjymTpGsaK9eLW
+# /Aw4gDrhB75CUxizu7uIEdPg7hADPjF1D2ganGJDzl/rC1xig+/wIQZYAtsV/uHt
+# DrRAqXaY0XvG+RLYVAIb57aw9FaX+fJtyy7tLSYqWxf0FM3fkDVvBbmnJsxOyr/C
+# oYUyVDy5+Giq9DjabZYTNIWS+PeNSLPLU7ekGd9Mnt46KPZzvi+seJ3dtHDFi6pr
+# nz7yjRNNAltEArIk13tZrPhZPmxApqasld1ajCx8WDpWajJagh1tPz18UAuU2KCC
+# m7rPCYjfwRu0Fg92XvAqtoOPA7zZke0mw5IAryhtkncbu4EAQawxwIaD4DG5tQKA
+# qk5ZHnGeiCUPGwfP5qzFpKkwqK5S0GVHiLHS22t+0je8v7EhrE5weXf8CKDDc7N8
+# WsM8pCctJvWkVhzvdWX9DvWIeSKOpa7QA884ymO3QbakDLuPWunnp0QjCt7swFHM
+# 6cFcMZh30Z37J8yMkww4rY0PMbT9NTOZpTcO/V+Ea82iV7PvLO8z5gJDMrEnnnFo
+# f/3CUbrkGvKWW786WJ24Fiv4f3qdGMNRo+lrNqiCrzwatsLpd3FlW8hx7AFeiBxb
+# H8c0HQ8EYQtabbTWPU67CZmwSxVCDFA6o+kz6bf8cJRaQgim03aHzPp5LsAtmr8l
+# lwdPoYIDIDCCAxwGCSqGSIb3DQEJBjGCAw0wggMJAgEBMHcwYzELMAkGA1UEBhMC
 # VVMxFzAVBgNVBAoTDkRpZ2lDZXJ0LCBJbmMuMTswOQYDVQQDEzJEaWdpQ2VydCBU
 # cnVzdGVkIEc0IFJTQTQwOTYgU0hBMjU2IFRpbWVTdGFtcGluZyBDQQIQC65mvFq6
 # f5WHxvnpBOMzBDANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3DQEJAzELBgkqhkiG
-# 9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTI0MTAwODA3MTgzMVowLwYJKoZIhvcNAQkE
-# MSIEIJuGsPSDNBphnkNxCEC/HXUIF97A1evqOHr0TjLxscqgMA0GCSqGSIb3DQEB
-# AQUABIICAD9K5QoNLVnsCogoRTngx+V2gvLDWD2onPV3gDpKsmr479TI17PC1ZfD
-# hImCfVLl5qkvGorRs3GTW1mFTIsqKQQFGDbSLnYyfswkSZkAsA4A6zzkYITm0Ugc
-# 7LhcKWSkA34tRHfWm5D8eE113pqmpU0RlexJJ6qk6GhKZIfT3cyHNcVsMJo/Pfoe
-# Gw+EldM9ex9ip6XhkxbTeZTDkSge5043vIr0EpFuu/GASY1l08PkJVq+KI5hegCi
-# plM+OzlhXop214Bdfr76XJhcI3ceoJuZBYwlBSJhveNwRCs72q4Khtn5owMkYWY+
-# ddbzFWSph2B+XpniIoIH4x7/C/mg7zSLLHCgGm+g4eQ/VlxKxpMlTh+KprOL5wvS
-# b84U5HzESiVA+5Hmx9CfjIDWHY5iNeuEyJTa3XHod6Vf/JlBcUwr7d1v7Nx4qlsw
-# +MNw1e9tYNPVL6FI9WFyeHQu0mREF76FdZY2T8i9Jx8hrXjFNwfE908UbyXnO2B6
-# FHrzVkSy5kSEg6TPLIB61CHq3YTTkiK72wEP5GrvWSKVxxh8x2gVlY5ZKTNlHwxW
-# mk7zSh5RA6Ig4MD5KBc496TV4motAQuDKw0NtFbEZ/gI+baQqey+HJmEahJOhR1T
-# 73E/D1ZZHZyamajtWi/hmnQ3HzCa3gA8+7//tmpZ0HY2C5WlRNGh
+# 9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTI1MDIxMDA4NDIxNVowLwYJKoZIhvcNAQkE
+# MSIEIKVbYUCWNOWAJHfvpDJ26Av4QA9RoGIeBn9zlq/zG9btMA0GCSqGSIb3DQEB
+# AQUABIICAAi4Bkk0dNFi7vwcmDqpvz5/ZwT6A09p1EScjIj9r5eb2kEDphLXcXMU
+# SzJTKdGu7a5MIYejsl9nmfQuFxEY0kHyUSTihGiqNIIOw3TV6vK8LQPt+AhhyhHy
+# L9ITzPZRFrXEmJ0g6E4cVT/FxvcBAx0yUHgbz98KbxW+8dd2jQdJe86jssBd2f5j
+# WTzjtBXLRjObf3EYqHXba+rHkpCLNZSIRczUrpSKAReSvvIUeGng42PGdDIpqynz
+# Vk89NqsR9nCu+wWNO9r/KvRjDZ/M7RMeS7ZSRacsvYkB1Y4p+yD0YhQV72Mvzibt
+# AyMHdQQ6bR2UwHW7XQOzfCHS9oYvh4VtUg1WqmYVg17IDke6HuzZfvo4RW45xWCa
+# IFMwmG4aguqkGNFL4S8UkAv0FqKEMnDIgMMguR/F28zmPHTjFNNXgocVOm9De8ds
+# wyG6aQZg9nstozZfV1yOXkOindaIf1DeMtbuiCgLMdpcktW71EAUFI5ekCixv9vF
+# JSvciNA+TkfFUPMASjZHki8xV3SLqCWa70hlqK1XpPLG36OTzqHv7+kSmbZ3l1Tm
+# QrUR64OhEnNf3HJww/vDbNuARwQs8oOBqayhrfzVXjlLrtRqTMcp43icBdpxpHkY
+# R3wvJwNoAYg13cq2fOLyujJ/RDSvSzpQojFFnP9BJao3UrWEq3z8
 # SIG # End signature block
